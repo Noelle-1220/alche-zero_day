@@ -1,0 +1,162 @@
+#!/bin/bash
+# setup_project.sh the student tracker project begins
+
+#1. codes for asking User to input name and seting the directory
+
+read -p "Enter project/directory name: " input
+project_dir="attendance_tracker_$input"
+
+#2. building the structure
+mkdir -p"$project_dir/Helpers" "$project_dir/reports"
+cd "$project_dir"
+
+#creating attendance_checker.py through copying information into the file while in vi 
+
+cat > attendance_checker.py << 'EOF'
+
+# Copied Python codes from attendance_checker.py
+
+import csv
+import json
+import os
+from datetime import datetime
+
+def run_attendance_check():
+
+    with open('Helpers/config.json', 'r') as f:
+
+        config = json.load(f)
+
+    if os.path.exists('reports/reports.log'):
+
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+
+        os.rename('reports/reports.log', f'reports/reports_{timestamp}.log.archive')
+
+    with open('Helpers/assets.csv', mode='r') as f, open('reports/reports.log', 'w') as log:
+
+        reader = csv.DictReader(f)
+
+        total_sessions = config['total_sessions']
+
+        log.write(f"--- Attendance Report Run: {datetime.now()} ---\n")
+
+        for row in reader:
+
+            name = row['Names']
+
+            email = row['Email']
+
+            attended = int(row['Attendance Count'])
+
+            attendance_pct = (attended / total_sessions) * 100
+
+            message = ""
+
+            if attendance_pct < config['thresholds']['failure']:
+
+                message = f"URGENT: {name}, your attendance is {attendance_pct:.1f}%. You will fail this class."
+
+            elif attendance_pct < config['thresholds']['warning']:
+
+                message = f"WARNING: {name}, your attendance is {attendance_pct:.1f}%. Please be careful."
+
+
+
+            if message:
+
+                if config['run_mode'] == "live":
+
+                    log.write(f"[{datetime.now()}] ALERT SENT TO {email}: {message}\n")
+
+                    print(f"Logged alert for {name}")
+
+                else:
+                    print(f"[DRY RUN] Email to {email}: {message}")
+
+
+if __name__ == "__main__":
+
+    run_attendance_check()
+EOF
+
+#4. create the data and config files
+
+cat > Helpers/assets.csv << 'EOF'
+
+Email,Names,Attendance Count, Absence Count
+
+alice@example.com,Alice Johnson,14,1
+bob@example.com,Bob Smith,7,8
+charlie@example.com,Charlie Davis,4,11
+diana@example.com,Diana Prince,15,0
+
+EOF
+
+#generation for Helpers/config.json
+
+cat > Helpers/config,json << 'EOF'
+{
+
+    "thresholds": {
+
+        "warning": 75,
+
+        "failure": 50
+
+    },
+
+    "run_mode": "live",
+
+    "total_sessions": 15
+
+}
+
+EOF 
+
+#5.Initialize reports/reports.log
+
+touch reports/reports.log
+
+#6. Asking User if they want to Update
+
+read -p "Update thresholds? (y/n): " choice
+
+if [[ "$choice"=="y" ]]; then
+
+#7.  capturing the new value
+
+read -p "Enter Warning Value: " warn_val
+read -p "Enter Failure value: " fail_val
+
+#8. stream Edit the config.json file
+
+sed -i "s/75/$warn_val/" Helpers/config.json
+sed -i"s/50/$fail_val/" helpers/config.json
+
+echo "config updated successfully ."
+
+fi
+
+cleanup() {
+
+#BUNDLE - Zips the project into a backup file if interrupted
+tar -czf "${project_dir}_archive.tar.gz" "$project_dir" 2>/dev/null 
+
+#PURGE - Deletes the incomplete directory to keep workspace clean
+
+rm -rf "$project_dir"
+
+exit 1
+
+}
+trap cleanup SIGINT
+
+#9.Health checkups
+
+python3 --version
+
+ls -R
+
+
+echo "setup Complete"
