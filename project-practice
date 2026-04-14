@@ -126,37 +126,41 @@ if [[ "$choice"=="y" ]]; then
 
 #7.  capturing the new value
 
-read -p "Enter Warning Value: " warn_val
-read -p "Enter Failure value: " fail_val
+read -p "Enter New Warning Value: " new_warning_val
+read -p "Enter New Failure value: " new_failure_val
 
 #8. stream Edit the config.json file
 
-sed -i "s/75/$warn_val/" Helpers/config.json
-sed -i"s/50/$fail_val/" helpers/config.json
+sed -i "s/75/$new_warning_val/" Helpers/config.json
+sed -i"s/50/$new_failure_val/" helpers/config.json
 
 echo "config updated successfully ."
 
+else
+	echo "keeping the default warning and failure values"
 fi
 
 cleanup() {
 
-#BUNDLE - Zips the project into a backup file if interrupted
+#Zips the project into a backup file if interrupted
 tar -czf "${project_dir}_archive.tar.gz" "$project_dir" 2>/dev/null 
 
-#PURGE - Deletes the incomplete directory to keep workspace clean
+#Deletes the incomplete directory to keep workspace clean
 
 rm -rf "$project_dir"
 
 exit 1
 
 }
+
 trap cleanup SIGINT
 
 #9.Health checkups
 
-python3 --version
+if python3 --version > /dev/null 2>&1; then
 
-ls -R
+        echo "✔ Python3 is installed"
+else
+        echo " ⚠ Warning: Python3 not installed"
+ fi
 
-
-echo "setup Complete"
